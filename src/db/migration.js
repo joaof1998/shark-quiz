@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const db = require('./index');
+const bcrypt = require('bcryptjs');
+const config = require('../config');
 
 const migrationSql = `
 CREATE TABLE IF NOT EXISTS admin_users (
@@ -142,21 +144,111 @@ CREATE INDEX IF NOT EXISTS idx_answers_game_question ON answers(game_id, questio
 CREATE INDEX IF NOT EXISTS idx_score_events_game ON score_events(game_id);
 `;
 
-const migrationPath = path.join(__dirname, 'migrations');
-if (!fs.existsSync(migrationPath)) fs.mkdirSync(migrationPath, { recursive: true });
-
-const versionFile = path.join(migrationPath, 'schema-version.json');
-let version = { current: 1 };
-if (fs.existsSync(versionFile)) {
-  version = JSON.parse(fs.readFileSync(versionFile, 'utf8'));
+function ensureAdminUser() {
+  const existing = db.prepare('SELECT id FROM admin_users WHERE username = ?').get(config.adminUsername);
+  if (!existing) {
+    const hash = bcrypt.hashSync(config.adminPassword, 10);
+    db.prepare('INSERT INTO admin_users (username, password_hash, role) VALUES (?, ?, ?)').run(
+      config.adminUsername,
+      hash,
+      'admin'
+    );
+  }
 }
 
-if (version.current < 1) {
-  db.exec(migrationSql);
-  version.current = 1;
-  fs.writeFileSync(versionFile, JSON.stringify(version, null, 2));
-} else {
-  db.exec(migrationSql);
+function ensureDemoQuestions() {
+  const categoryCount = db.prepare('SELECT COUNT(*) AS total FROM categories').get().total;
+  if (categoryCount > 0) {
+    return;
+  }
+
+  const cat1 = db.prepare('INSERT INTO categories (name, description) VALUES (?, ?)').run(
+    'Geografia',
+    'Perguntas sobre territórios, capitais e curiosidades geográficas.'
+  );
+
+  const cat2 = db.prepare('INSERT INTO categories (name, description) VALUES (?, ?)').run(
+    'Ciência',
+    'Perguntas sobre tecnologia, natureza e curiosidades científicas.'
+  );
+
+  const q1 = db.prepare(`
+    INSERT INTO questions (category_id, text, difficulty, explanation, language, active, source, license)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    cat1.lastInsertRowid,
+    'Qual é a capital de Portugal?',
+    'fácil',
+    'Lisboa é a capital e maior cidade de Portugal, situada na costa atlântica.',
+    'pt-PT',
+    1,
+    'Coleção de demonstração SHARK QUIZ',
+    'MIT / conteúdo demonstrativo'
+  );
+  db.prepare('INSERT INTO question_options (question_id, option_text, is_correct, ordering) VALUES (?, ?, ?, ?)').run(q1.lastInsertRowid, 'Lisboa', 1, 1);
+  db.prepare('INSERT INTO question_options (question_id, option_text, is_correct, ordering) VALUES (?, ?, ?, ?)').run(q1.lastInsertRowid, 'Porto', 0, 2);
+  db.prepare('INSERT INTO question_options (question_id, option_text, is_correct, ordering) VALUES (?, ?, ?, ?)').run(q1.lastInsertRowid, 'Coimbra', 0, 3);
+  db.prepare('INSERT INTO question_options (question_id, option_text, is_correct, ordering) VALUES (?, ?, ?, ?)').run(q1.lastInsertRowid, 'Braga', 0, 4);
+
+  const q2 = db.prepare(`
+    INSERT INTO questions (category_id, text, difficulty, explanation, language, active, source, license)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    cat2.lastInsertRowid,
+    'Qual é o planeta mais quente do Sistema Solar?',
+    'média',
+    'Vénus é o planeta mais quente por causa do efeito de estufa extremo na sua atmosfera.',
+    'pt-PT',
+    1,
+    'Coleção de demonstração SHARK QUIZ',
+    'MIT / conteúdo demonstrativo'
+  );
+  db.prepare('INSERT INTO question_options (question_id, option_text, is_correct, ordering) VALUES (?, ?, ?, ?)').run(q2.lastInsertRowid, 'Mercúrio', 0, 1);
+  db.prepare('INSERT INTO question_options (question_id, option_text, is_correct, ordering) VALUES (?, ?, ?, ?)').run(q2.lastInsertRowid, 'Vénus', 1, 2);
+  db.prepare('INSERT INTO question_options (question_id, option_text, is_correct, ordering) VALUES (?, ?, ?, ?)').run(q2.lastInsertRowid, 'Marte', 0, 3);
+  db.prepare('INSERT INTO question_options (question_id, option_text, is_correct, ordering) VALUES (?, ?, ?, ?)').run(q2.lastInsertRowid, 'Júpiter', 0, 4);
+
+  const q3 = db.prepare(`
+    INSERT INTO questions (category_id, text, difficulty, explanation, language, active, source, license)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    cat1.lastInsertRowid,
+    'Qual destes países faz fronteira com Portugal?',
+    'fácil',
+    'Espanha faz fronteira terrestre com Portugal e é o principal país vizinho.',
+    'pt-PT',
+    1,
+    'Coleção de demonstração SHARK QUIZ',
+    'MIT / conteúdo demonstrativo'
+  );
+  db.prepare('INSERT INTO question_options (question_id, option_text, is_correct, ordering) VALUES (?, ?, ?, ?)').run(q3.lastInsertRowid, 'Itália', 0, 1);
+  db.prepare('INSERT INTO question_options (question_id, option_text, is_correct, ordering) VALUES (?, ?, ?, ?)').run(q3.lastInsertRowid, 'Espanha', 1, 2);
+  db.prepare('INSERT INTO question_options (question_id, option_text, is_correct, ordering) VALUES (?, ?, ?, ?)').run(q3.lastInsertRowid, 'França', 0, 3);
+  db.prepare('INSERT INTO question_options (question_id, option_text, is_correct, ordering) VALUES (?, ?, ?, ?)').run(q3.lastInsertRowid, 'Alemanha', 0, 4);
+
+  const q4 = db.prepare(`
+    INSERT INTO questions (category_id, text, difficulty, explanation, language, active, source, license)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    cat2.lastInsertRowid,
+    'Qual destas substâncias é um gás nobre?',
+    'média',
+    'O hélio é um gás nobre: é muito estável e não reage facilmente com outras substâncias.',
+    'pt-PT',
+    1,
+    'Coleção de demonstração SHARK QUIZ',
+    'MIT / conteúdo demonstrativo'
+  );
+  db.prepare('INSERT INTO question_options (question_id, option_text, is_correct, ordering) VALUES (?, ?, ?, ?)').run(q4.lastInsertRowid, 'Oxigénio', 0, 1);
+  db.prepare('INSERT INTO question_options (question_id, option_text, is_correct, ordering) VALUES (?, ?, ?, ?)').run(q4.lastInsertRowid, 'Hélio', 1, 2);
+  db.prepare('INSERT INTO question_options (question_id, option_text, is_correct, ordering) VALUES (?, ?, ?, ?)').run(q4.lastInsertRowid, 'Nitrato', 0, 3);
+  db.prepare('INSERT INTO question_options (question_id, option_text, is_correct, ordering) VALUES (?, ?, ?, ?)').run(q4.lastInsertRowid, 'Dióxido de carbono', 0, 4);
 }
 
-module.exports = { migrationSql, version };
+function initializeDatabase() {
+  db.exec(migrationSql);
+  ensureAdminUser();
+  ensureDemoQuestions();
+}
+
+module.exports = { migrationSql, initializeDatabase };
