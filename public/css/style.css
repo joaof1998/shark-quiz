@@ -1,0 +1,81 @@
+const socket = io();
+
+const projectorCode = document.getElementById('projectorCode');
+const projectorTeams = document.getElementById('projectorTeams');
+const projectorCategory = document.getElementById('projectorCategory');
+const projectorQuestion = document.getElementById('projectorQuestion');
+const projectorOptions = document.getElementById('projectorOptions');
+const projectorExplanation = document.getElementById('projectorExplanation');
+const projectorTimer = document.getElementById('projectorTimer');
+const projectorLeaderboard = document.getElementById('projectorLeaderboard');
+
+let currentGame = null;
+
+function formatTime(ms) {
+  const seconds = Math.max(0, Math.ceil(ms / 1000));
+  return `${seconds}s`;
+}
+
+function renderGame(data) {
+  if (!data) return;
+  currentGame = data;
+  projectorCode.textContent = data.code;
+  projectorTeams.textContent = data.teams ? data.teams.length : 0;
+
+  const q = data.currentQuestion;
+  if (!q) {
+    projectorCategory.textContent = 'Aguardando';
+    projectorQuestion.textContent = 'A partida está a preparar a próxima pergunta.';
+    projectorOptions.innerHTML = '';
+    projectorExplanation.classList.add('hidden');
+    projectorTimer.textContent = '—';
+    return;
+  }
+
+  projectorCategory.textContent = `${q.category_name || 'Geral'} • ${q.difficulty || '—'}`;
+  projectorQuestion.textContent = q.text;
+  projectorOptions.innerHTML = q.options.map((opt) => `
+    <div class="projector-option ${q.revealed && opt.is_correct ? 'correct' : ''}">
+      ${opt.option_text}
+    </div>
+  `).join('');
+
+  if (q.revealed && q.explanation) {
+    projectorExplanation.textContent = q.explanation;
+    projectorExplanation.classList.remove('hidden');
+  } else {
+    projectorExplanation.classList.add('hidden');
+  }
+
+  if (q.question_end_at) {
+    const diff = new Date(q.question_end_at).getTime() - Date.now();
+    projectorTimer.textContent = formatTime(diff);
+    setInterval(() => {
+      const diff2 = new Date(q.question_end_at).getTime() - Date.now();
+      projectorTimer.textContent = formatTime(diff2);
+    }, 250);
+  }
+
+  projectorLeaderboard.innerHTML = (data.leaderboard || []).slice(0, 5).map((team, index) => `
+    <div>#${index + 1} ${team.team_name} - ${team.score}</div>
+  `).join('');
+}
+
+const params = new URLSearchParams(window.location.search);
+const code = params.get('code') || '123456';
+projectorCode.textContent = code;
+
+socket.emit('host-room', { code });
+
+socket.on('game:update', (data) => {
+  if (data.code === code || !data.code) {
+    renderGame(data);
+  }
+});
+
+fetch(`/api/games/${code}/state`)
+  .then((res) => res.json())
+  .then(renderGame)
+  .catch(() => {
+    projectorQuestion.textContent = 'Nenhuma partida ativa para este código.';
+  });

@@ -1,0 +1,47 @@
+const { Server } = require('socket.io');
+const gameService = require('../services/gameService');
+
+let io;
+
+function init(server) {
+  io = new Server(server, {
+    cors: {
+      origin: '*',
+      methods: ['GET', 'POST']
+    }
+  });
+
+  io.on('connection', socket => {
+    socket.on('join-room', ({ code }) => {
+      if (!code) return;
+      socket.join(`game:${code}`);
+      socket.emit('room-joined', { code });
+    });
+
+    socket.on('host-room', ({ code }) => {
+      if (!code) return;
+      socket.join(`host:${code}`);
+      socket.emit('host-joined', { code });
+    });
+
+    socket.on('request-state', ({ code }) => {
+      const game = gameService.getGameByCode(String(code || '').trim());
+      if (!game) return;
+      const view = gameService.getGameView(code);
+      io.to(`game:${code}`).emit('game:update', view);
+      io.to(`host:${code}`).emit('game:update', view);
+    });
+  });
+
+  return io;
+}
+
+function emitGameUpdate(code) {
+  if (!io) return;
+  const view = gameService.getGameView(code);
+  if (!view) return;
+  io.to(`game:${code}`).emit('game:update', view);
+  io.to(`host:${code}`).emit('game:update', view);
+}
+
+module.exports = { init, emitGameUpdate };

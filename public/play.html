@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SHARK QUIZ | Apresentador</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <script src="/socket.io/socket.io.js"></script>
+  </head>
+  <body>
+    <div class="container host-shell">
+      <header class="topbar">
+        <div>
+          <div class="brand-mini">SHARK QUIZ</div>
+          <h1>Painel do apresentador</h1>
+        </div>
+        <div class="top-actions">
+          <button id="logoutBtn" class="button ghost">Sair</button>
+        </div>
+      </header>
+
+      <section id="loginPanel" class="panel auth-panel">
+        <h2>Entrar</h2>
+        <form id="loginForm">
+          <label>Utilizador
+            <input type="text" id="username" value="admin" required />
+          </label>
+          <label>Palavra-passe
+            <input type="password" id="password" value="admin123" required />
+          </label>
+          <button class="button primary" type="submit">Entrar</button>
+        </form>
+      </section>
+
+      <section id="hostPanel" class="hidden">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span>Código</span>
+            <strong id="gameCode">—</strong>
+          </div>
+          <div class="stat-card">
+            <span>Estado</span>
+            <strong id="gameState">—</strong>
+          </div>
+          <div class="stat-card">
+            <span>Equipas</span>
+            <strong id="teamCount">0</strong>
+          </div>
+          <div class="stat-card">
+            <span>Pergunta</span>
+            <strong id="questionNumber">0/0</strong>
+          </div>
+        </div>
+
+        <div class="panel controls-panel">
+          <h2>Partida</h2>
+          <div class="controls-row">
+            <button id="createGameBtn" class="button primary">Nova partida</button>
+            <button id="startGameBtn" class="button success">Iniciar</button>
+            <button id="pauseGameBtn" class="button warning">Pausar</button>
+            <button id="resumeGameBtn" class="button secondary">Retomar</button>
+            <button id="revealGameBtn" class="button danger">Revelar resposta</button>
+            <button id="advanceGameBtn" class="button primary">Avançar</button>
+          </div>
+        </div>
+
+        <div class="panel current-question-panel">
+          <h2>Pergunta atual</h2>
+          <div id="questionCard" class="question-card">
+            <div class="question-meta"><span id="questionCategory">—</span><span id="questionDifficulty">—</span></div>
+            <h3 id="questionText">Sem pergunta</h3>
+            <div id="optionsList" class="options-list"></div>
+            <div id="questionExplanation" class="explanation hidden"></div>
+          </div>
+        </div>
+
+        <div class="panel leaderboard-panel">
+          <h2>Classificação</h2>
+          <ul id="leaderboardList" class="leaderboard-list"></ul>
+        </div>
+      </section>
+    </div>
+
+    <script src="/js/host.js"></script>
+  </body>
+</html>

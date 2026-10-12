@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SHARK QUIZ | Participante</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <script src="/socket.io/socket.io.js"></script>
+  </head>
+  <body class="play-body">
+    <div class="container play-shell">
+      <div id="joinScreen" class="panel join-panel">
+        <div class="brand-mini">SHARK QUIZ</div>
+        <h1>Entrar no jogo</h1>
+        <form id="joinForm">
+          <label>Código da partida
+            <input id="gameCodeInput" type="text" maxlength="6" placeholder="123456" required />
+          </label>
+          <label>Nome da equipa
+            <input id="teamNameInput" type="text" maxlength="30" placeholder="Equipa Aurora" required />
+          </label>
+          <button class="button primary" type="submit">Entrar</button>
+        </form>
+      </div>
+
+      <div id="gameScreen" class="hidden">
+        <header class="play-header">
+          <div>
+            <div class="brand-mini">SHARK QUIZ</div>
+            <span id="teamBadge">Equipa</span>
+          </div>
+          <div class="timer-box">
+            <span>Tempo</span>
+            <strong id="timeRemaining">0s</strong>
+          </div>
+        </header>
+
+        <div class="panel question-panel">
+          <div class="question-meta"><span id="playCategory">—</span><span id="playDifficulty">—</span></div>
+          <h2 id="playQuestionText">Aguardando início</h2>
+          <div id="playOptions" class="play-options"></div>
+          <div id="statusMessage" class="status-message">Aguardar início da ronda.</div>
+        </div>
+      </div>
+    </div>
+
+    <script src="/js/play.js"></script>
+  </body>
+</html>
